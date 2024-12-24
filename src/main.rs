@@ -1,11 +1,13 @@
 #[allow(unused_imports)]
 use std::io::{self, Write};
+use std::{path::PathBuf, process};
 
 enum Command {
     Exit,
     Echo,
     Type,
     Invalid,
+    External(PathBuf),
 }
 
 impl Command {
@@ -14,28 +16,30 @@ impl Command {
             "exit" => Self::Exit,
             "echo" => Self::Echo,
             "type" => Self::Type,
-            _ => Self::Invalid,
+            _ => check_path(cmd).map(Self::External).unwrap_or(Self::Invalid),
         }
     }
 
-    fn as_str(&self) -> &'static str {
+    fn as_str(&self) -> &str {
         match self {
             Self::Exit => "exit",
             Self::Echo => "echo",
             Self::Type => "type",
             Self::Invalid => "invalid",
+            Self::External(p) => p.file_name().unwrap().to_str().unwrap(),
         }
     }
 }
 
-fn check_path(cmd: &str) -> Result<String, bool> {
+fn check_path(cmd: &str) -> Result<PathBuf, bool> {
     let path_env = std::env::var("PATH").unwrap();
     let paths = path_env.split(":").collect::<Vec<&str>>();
 
     for path in paths {
         let full_path = format!("{}/{}", path, cmd);
-        if std::path::Path::new(&full_path).exists() {
-            return Ok(full_path);
+        let pathbuf = PathBuf::from(full_path);
+        if pathbuf.exists() {
+            return Ok(pathbuf);
         }
     }
 
@@ -56,15 +60,26 @@ fn main() {
 
         let command = Command::from_str(input_vec[0]);
         match command {
-            Command::Exit => exit(input_vec[1]),
-            Command::Echo => echo(input_vec[1..].join(" ")),
+            Command::Exit => exit_cmd(input_vec[1]),
+            Command::Echo => echo_cmd(&input_vec[1..].join(" ")),
             Command::Type => type_cmd(input_vec[1]),
-            Command::Invalid => invalid_command(input),
+            Command::External(path) => external_cmd(path, input_vec[1..].to_vec()),
+            Command::Invalid => invalid_cmd(&input),
         }
     }
 }
 
-fn invalid_command(input: String) {
+fn external_cmd(path: PathBuf, input: Vec<&str>) {
+    match process::Command::new(path).args(input).output() {
+        Ok(output) => {
+            io::stdout().write_all(&output.stdout).unwrap();
+            io::stderr().write_all(&output.stderr).unwrap();
+        }
+        Err(e) => eprintln!("{}", e),
+    }
+}
+
+fn invalid_cmd(input: &str) {
     println!("{}: command not found", input.trim());
 }
 
@@ -72,22 +87,19 @@ fn type_cmd(input: &str) {
     let cmd = Command::from_str(input);
 
     match cmd {
-        Command::Invalid => {
-            let value = check_path(input);
-            match value {
-                Ok(path) => println!("{} is {}", input, path),
-                Err(_) => println!("{}: not found", input),
-            }
+        Command::External(path) => println!("{} is {}", input, path.to_str().unwrap()),
+        Command::Invalid => println!("{}: not found", input),
+        Command::Exit | Command::Echo | Command::Type => {
+            println!("{} is a shell builtin", cmd.as_str())
         }
-        _ => println!("{} is a shell builtin", cmd.as_str()),
     }
 }
 
-fn echo(msg: String) {
+fn echo_cmd(msg: &str) {
     println!("{}", msg);
 }
 
-fn exit(code: &str) {
+fn exit_cmd(code: &str) {
     let code = code.parse::<i32>().unwrap_or(0);
     std::process::exit(code);
 }
