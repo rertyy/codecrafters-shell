@@ -28,22 +28,38 @@ impl Command {
     }
 }
 
+fn check_path(cmd: &str) -> Result<String, bool> {
+    let path_env = std::env::var("PATH").unwrap();
+    let paths = path_env.split(":").collect::<Vec<&str>>();
+
+    for path in paths {
+        let full_path = format!("{}/{}", path, cmd);
+        if std::path::Path::new(&full_path).exists() {
+            return Ok(full_path);
+        }
+    }
+
+    Err(false)
+}
+
 fn main() {
+    let stdin = io::stdin();
+
     loop {
         print!("$ ");
         io::stdout().flush().unwrap();
 
         // Wait for user input
-        let stdin = io::stdin();
         let mut input = String::new();
         stdin.read_line(&mut input).unwrap();
         let input_vec = input.split_whitespace().collect::<Vec<&str>>();
+
         let command = Command::from_str(input_vec[0]);
         match command {
             Command::Exit => exit(input_vec[1]),
             Command::Echo => echo(input_vec[1..].join(" ")),
-            Command::Invalid => invalid_command(input),
             Command::Type => type_cmd(input_vec[1]),
+            Command::Invalid => invalid_command(input),
         }
     }
 }
@@ -54,8 +70,15 @@ fn invalid_command(input: String) {
 
 fn type_cmd(input: &str) {
     let cmd = Command::from_str(input);
+
     match cmd {
-        Command::Invalid => println!("{}: not found", input),
+        Command::Invalid => {
+            let value = check_path(input);
+            match value {
+                Ok(path) => println!("{} is {}", input, path),
+                Err(_) => println!("{}: not found", input),
+            }
+        }
         _ => println!("{} is a shell builtin", cmd.as_str()),
     }
 }
