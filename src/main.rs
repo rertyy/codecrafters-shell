@@ -82,7 +82,9 @@ fn main() {
 
 fn cd_cmd(dir: &str) {
     let path = PathBuf::from(dir);
-    if std::env::set_current_dir(&path).is_err() {
+    let home = std::env::var("HOME").unwrap();
+    let replaced = path.display().to_string().replace("~", &home);
+    if std::env::set_current_dir(&replaced).is_err() {
         eprintln!("cd: {}: No such file or directory", dir);
     }
 }
