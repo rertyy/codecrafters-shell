@@ -9,6 +9,7 @@ enum Command {
     Invalid,
     External(PathBuf),
     Pwd,
+    Cd,
 }
 
 impl Command {
@@ -18,6 +19,7 @@ impl Command {
             "echo" => Self::Echo,
             "type" => Self::Type,
             "pwd" => Self::Pwd,
+            "cd" => Self::Cd,
             _ => check_path(cmd).map(Self::External).unwrap_or(Self::Invalid),
         }
     }
@@ -30,6 +32,7 @@ impl Command {
             Self::Invalid => "invalid",
             Self::External(p) => p.file_name().unwrap().to_str().unwrap(),
             Self::Pwd => "pwd",
+            Self::Cd => "cd",
         }
     }
 }
@@ -72,7 +75,15 @@ fn main() {
             Command::External(path) => external_cmd(path, input_vec[1..].to_vec()),
             Command::Invalid => invalid_cmd(&input),
             Command::Pwd => pwd_cmd(),
+            Command::Cd => cd_cmd(input_vec[1]),
         }
+    }
+}
+
+fn cd_cmd(dir: &str) {
+    let path = PathBuf::from(dir);
+    if std::env::set_current_dir(&path).is_err() {
+        eprintln!("cd: {}: No such file or directory", dir);
     }
 }
 
@@ -101,12 +112,11 @@ fn type_cmd(input: &str) {
     match cmd {
         Command::External(path) => println!("{} is {}", input, path.to_str().unwrap()),
         Command::Invalid => println!("{}: not found", input),
-        Command::Exit | Command::Echo | Command::Type | Command::Pwd => {
+        Command::Exit | Command::Echo | Command::Type | Command::Pwd | Command::Cd => {
             println!("{} is a shell builtin", cmd.as_str())
         }
     }
 }
-
 fn echo_cmd(msg: &str) {
     println!("{}", msg);
 }
