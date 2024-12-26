@@ -13,11 +13,18 @@ impl fmt::Display for PathError {
 }
 
 pub fn parse_input(cmd: &str) -> Vec<&str> {
-    let re = Regex::new(r"'[^']+'|\S+").unwrap();
-    re.find_iter(cmd)
-        .map(|m| m.as_str())
-        .map(|s| s.trim_matches('\''))
-        .collect()
+    let re = Regex::new(r#"'[^']+'|"[^"]+"|\S+"#).unwrap();
+    let mut results = vec![];
+    for m in re.find_iter(cmd) {
+        // TODO: this doesn't handle escaping of characters
+        // but at this point there's no variable expansion...
+        let mut s = m.as_str();
+        if s.starts_with('\'') || s.starts_with('"') {
+            s = &s[1..s.len() - 1];
+        }
+        results.push(s);
+    }
+    results
 }
 
 pub fn check_path(cmd: &str) -> Result<PathBuf, PathError> {
