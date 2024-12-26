@@ -12,17 +12,17 @@ impl fmt::Display for PathError {
     }
 }
 
-pub fn parse_input(cmd: &str) -> Vec<&str> {
+pub fn parse_input(cmd: &str) -> Vec<String> {
     let re = Regex::new(r#"'[^']+'|"[^"]+"|\S+"#).unwrap();
     let mut results = vec![];
     for m in re.find_iter(cmd) {
-        // TODO: this doesn't handle escaping of characters
-        // but at this point there's no variable expansion...
-        let mut s = m.as_str();
+        let mut s = m.as_str().to_string();
         if s.starts_with('\'') || s.starts_with('"') {
-            s = &s[1..s.len() - 1];
+            s = s[1..s.len() - 1].to_string();
+        } else {
+            s = s.replace("\\", "");
         }
-        results.push(s);
+        results.push(s.to_string());
     }
     results
 }

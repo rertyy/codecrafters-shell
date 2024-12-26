@@ -23,15 +23,15 @@ fn main() {
             continue;
         }
 
-        let command = Command::parse_str(input_vec[0]);
+        let command = Command::parse_str(&input_vec[0]);
         match command {
-            Command::Exit => exit_cmd(input_vec[1]),
+            Command::Exit => exit_cmd(&input_vec[1]),
             Command::Echo => echo_cmd(&input_vec[1..].join(" ")),
-            Command::Type => type_cmd(input_vec[1]),
+            Command::Type => type_cmd(&input_vec[1]),
             Command::External(path) => external_cmd(path, input_vec[1..].to_vec()),
             Command::Invalid => invalid_cmd(&input),
             Command::Pwd => pwd_cmd(),
-            Command::Cd => cd_cmd(input_vec[1]),
+            Command::Cd => cd_cmd(&input_vec[1]),
         }
     }
 }

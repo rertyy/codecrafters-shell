@@ -18,7 +18,7 @@ pub fn pwd_cmd() {
     println!("{}", current_dir.display());
 }
 
-pub fn external_cmd(path: PathBuf, input: Vec<&str>) {
+pub fn external_cmd(path: PathBuf, input: Vec<String>) {
     match process::Command::new(path).args(input).output() {
         Ok(output) => {
             io::stdout().write_all(&output.stdout).unwrap();
