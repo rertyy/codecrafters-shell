@@ -98,9 +98,12 @@ where
     Ok(io::BufReader::new(file).lines())
 }
 
-fn read_history() {
+pub fn read_history() -> Vec<String> {
     if let Ok(lines) = read_lines(HISTORY_FILE) {
-        let history: Vec<String> = lines.map_while(Result::ok).collect();
+        let mut history: Vec<String> = lines.map_while(Result::ok).collect();
+        history
+    } else {
+        Vec::new()
     }
 }
 pub fn write_history(input: &str) {

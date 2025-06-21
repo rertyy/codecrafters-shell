@@ -2,10 +2,14 @@ use std::io::Write;
 use std::{path::PathBuf, process};
 
 use crate::enums::Command;
+use crate::util;
 use std::os::unix::process::CommandExt;
 
 pub fn history_cmd(iostream: &mut dyn Write) {
-    todo!()
+    let history = util::read_history();
+    for (i, history) in history.iter().enumerate() {
+        writeln!(iostream, "    {}  {}", i + 1, history).unwrap();
+    }
 }
 pub fn cd_cmd(args: &[String], err_stream: &mut dyn Write) {
     let home = std::env::var("HOME").unwrap_or_else(|_| "/".into());
