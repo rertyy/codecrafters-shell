@@ -1,5 +1,7 @@
 use crate::parser::{Redirection, RedirectionType};
-use std::io::{Read, Write};
+use crate::HISTORY_FILE;
+use std::fs::File;
+use std::io::{BufRead, Read, Write};
 use std::path::{Path, PathBuf};
 use std::{fmt, io};
 
@@ -85,4 +87,30 @@ pub fn check_streams(
         }
     }
     (input_stream, iostream, errstream)
+}
+
+// https://doc.rust-lang.org/rust-by-example/std_misc/file/read_lines.html
+fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
+where
+    P: AsRef<Path>,
+{
+    let file = File::open(filename)?;
+    Ok(io::BufReader::new(file).lines())
+}
+
+fn read_history() {
+    if let Ok(lines) = read_lines(HISTORY_FILE) {
+        let history: Vec<String> = lines.map_while(Result::ok).collect();
+    }
+}
+pub fn write_history(input: &str) {
+    if let Ok(mut history_file) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(HISTORY_FILE)
+    {
+        writeln!(history_file, "{}", input).unwrap();
+    } else {
+        eprintln!("History file not found");
+    }
 }

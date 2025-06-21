@@ -38,6 +38,7 @@ pub enum Command {
     External(PathBuf),
     Pwd,
     Cd,
+    History,
 }
 
 impl Display for Command {
@@ -50,6 +51,7 @@ impl Display for Command {
             Self::External(path) => path.to_str().unwrap_or("invalid"),
             Self::Pwd => "pwd",
             Self::Cd => "cd",
+            Self::History => "history",
         };
         write!(f, "{}", str)
     }
@@ -65,6 +67,7 @@ impl FromStr for Command {
             "type" => Self::Type,
             "pwd" => Self::Pwd,
             "cd" => Self::Cd,
+            "history" => Self::History,
             _ => check_path(cmd).map(Self::External).unwrap_or(Self::Invalid),
         };
         Ok(result)

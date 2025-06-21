@@ -8,6 +8,8 @@ mod lexer;
 mod parser;
 pub mod util;
 
+const HISTORY_FILE: &str = "/tmp/ccf_hist.txt";
+
 use crate::commands::*;
 use crate::enums::Command;
 use crate::lexer::Lexer;
@@ -35,6 +37,8 @@ fn main() {
         let mut parser = Parser::new(tokens);
         let node = parser.parse();
         // println!("{:?}", node);
+
+        util::write_history(&input);
 
         match node {
             ASTNode::Command {
@@ -70,6 +74,7 @@ fn main() {
                 Command::External(path) => external_cmd(path, &args, iostream, err_stream),
                 Command::Pwd => pwd_cmd(iostream),
                 Command::Cd => cd_cmd(&args, err_stream),
+                Command::History => history_cmd(iostream),
                 Command::Invalid => invalid_cmd(&name, err_stream),
             }
         } else {

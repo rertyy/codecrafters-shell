@@ -4,10 +4,18 @@ use std::{path::PathBuf, process};
 use crate::enums::Command;
 use std::os::unix::process::CommandExt;
 
+pub fn history_cmd(iostream: &mut dyn Write) {
+    todo!()
+}
 pub fn cd_cmd(args: &[String], err_stream: &mut dyn Write) {
-    let home = std::env::var("HOME").unwrap();
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/".into());
     let dir = args.get(0).unwrap_or(&home);
-    let path = PathBuf::from(dir);
+    let path = if dir.starts_with('~') {
+        PathBuf::from(dir.replacen('~', &home, 1))
+    } else {
+        PathBuf::from(dir)
+    };
+
     if std::env::set_current_dir(&path).is_err() {
         writeln!(err_stream, "cd: {}: No such file or directory", dir).unwrap();
     }
@@ -49,7 +57,14 @@ pub fn type_cmd(args: &[String], iostream: &mut dyn Write, err_stream: &mut dyn 
             Ok(Command::External(path)) => {
                 writeln!(iostream, "{} is {}", name, path.to_str().unwrap()).unwrap();
             }
-            Ok(Command::Exit | Command::Echo | Command::Type | Command::Pwd | Command::Cd) => {
+            Ok(
+                Command::Exit
+                | Command::Echo
+                | Command::Type
+                | Command::Pwd
+                | Command::Cd
+                | Command::History,
+            ) => {
                 writeln!(iostream, "{} is a shell builtin", name).unwrap();
             }
             Ok(Command::Invalid) | Err(_) => {
