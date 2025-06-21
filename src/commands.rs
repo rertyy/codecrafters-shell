@@ -1,53 +1,71 @@
-#[allow(unused_imports)]
-use std::io::{self, Write};
+use std::io::Write;
 use std::{path::PathBuf, process};
 
 use crate::enums::Command;
+use std::os::unix::process::CommandExt;
 
-pub fn cd_cmd(dir: &str) {
-    let path = PathBuf::from(dir);
+pub fn cd_cmd(args: &[String], err_stream: &mut dyn Write) {
     let home = std::env::var("HOME").unwrap();
-    let replaced = path.display().to_string().replace("~", &home);
-    if std::env::set_current_dir(&replaced).is_err() {
-        eprintln!("cd: {}: No such file or directory", dir);
+    let dir = args.get(0).unwrap_or(&home);
+    let path = PathBuf::from(dir);
+    if std::env::set_current_dir(&path).is_err() {
+        writeln!(err_stream, "cd: {}: No such file or directory", dir).unwrap();
     }
 }
 
-pub fn pwd_cmd() {
+pub fn pwd_cmd(iostream: &mut dyn Write) {
     let current_dir = std::env::current_dir().unwrap();
-    println!("{}", current_dir.display());
+    writeln!(iostream, "{}", current_dir.display()).unwrap();
 }
 
-pub fn external_cmd(path: PathBuf, input: Vec<String>) {
-    match process::Command::new(path).args(input).output() {
+pub fn external_cmd(
+    path: PathBuf,
+    args: &[String],
+    iostream: &mut dyn Write,
+    err_stream: &mut dyn Write,
+) {
+    let file_name = path.file_name().unwrap_or_default().to_os_string(); // clone to detach the borrow
+
+    match process::Command::new(path)
+        .arg0(file_name)
+        .args(args)
+        .output()
+    {
         Ok(output) => {
-            io::stdout().write_all(&output.stdout).unwrap();
-            io::stderr().write_all(&output.stderr).unwrap();
+            iostream.write_all(&output.stdout).unwrap();
+            err_stream.write_all(&output.stderr).unwrap();
         }
-        Err(e) => eprintln!("{}", e),
+        Err(e) => writeln!(err_stream, "Error: {}", e).unwrap(),
     }
 }
 
-pub fn invalid_cmd(input: &str) {
-    println!("{}: command not found", input.trim());
+pub fn invalid_cmd(name: &str, err_stream: &mut dyn Write) {
+    writeln!(err_stream, "{}: command not found", name).unwrap();
 }
 
-pub fn type_cmd(input: &str) {
-    let cmd = Command::parse_str(input);
-
-    match cmd {
-        Command::External(path) => println!("{} is {}", input, path.to_str().unwrap()),
-        Command::Invalid => println!("{}: not found", input),
-        Command::Exit | Command::Echo | Command::Type | Command::Pwd | Command::Cd => {
-            println!("{} is a shell builtin", cmd.as_str())
+pub fn type_cmd(args: &[String], iostream: &mut dyn Write, err_stream: &mut dyn Write) {
+    if let Some(name) = args.get(0) {
+        match name.parse::<Command>() {
+            Ok(Command::External(path)) => {
+                writeln!(iostream, "{} is {}", name, path.to_str().unwrap()).unwrap();
+            }
+            Ok(Command::Exit | Command::Echo | Command::Type | Command::Pwd | Command::Cd) => {
+                writeln!(iostream, "{} is a shell builtin", name).unwrap();
+            }
+            Ok(Command::Invalid) | Err(_) => {
+                writeln!(err_stream, "{}: not found", name).unwrap();
+            }
         }
+    } else {
+        writeln!(err_stream, "type: missing operand").unwrap();
     }
 }
-pub fn echo_cmd(msg: &str) {
-    println!("{}", msg);
+
+pub fn echo_cmd(input: &[String], iostream: &mut dyn Write) {
+    writeln!(iostream, "{}", input.join(" ")).unwrap();
 }
 
-pub fn exit_cmd(code: &str) {
-    let code = code.parse::<i32>().unwrap_or(0);
-    std::process::exit(code);
+pub fn exit_cmd(args: &[String]) {
+    let code = args.get(0).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0);
+    process::exit(code);
 }
