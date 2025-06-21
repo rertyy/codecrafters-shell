@@ -17,6 +17,7 @@ use crate::parser::{ASTNode, Parser, Redirection};
 
 fn main() {
     let stdin = io::stdin();
+    util::clear_history();
 
     loop {
         print!("$ ");
@@ -74,7 +75,7 @@ fn main() {
                 Command::External(path) => external_cmd(path, &args, iostream, err_stream),
                 Command::Pwd => pwd_cmd(iostream),
                 Command::Cd => cd_cmd(&args, err_stream),
-                Command::History => history_cmd(iostream),
+                Command::History => history_cmd(args, iostream),
                 Command::Invalid => invalid_cmd(&name, err_stream),
             }
         } else {

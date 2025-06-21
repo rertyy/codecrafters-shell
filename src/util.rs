@@ -3,7 +3,7 @@ use crate::HISTORY_FILE;
 use std::fs::File;
 use std::io::{BufRead, Read, Write};
 use std::path::{Path, PathBuf};
-use std::{fmt, io};
+use std::{fmt, fs, io};
 
 #[derive(Debug)]
 pub struct PathError;
@@ -96,6 +96,10 @@ where
 {
     let file = File::open(filename)?;
     Ok(io::BufReader::new(file).lines())
+}
+
+pub fn clear_history() {
+    fs::remove_file(HISTORY_FILE).unwrap_or(())
 }
 
 pub fn read_history() -> Vec<String> {
