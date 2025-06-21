@@ -1,6 +1,5 @@
 extern crate core;
 
-use crate::parser::RedirectionType;
 use std::io::{self, Read, Write};
 
 mod commands;
@@ -48,72 +47,14 @@ fn main() {
     }
 
     fn run_pipeline(pipeline: Vec<ASTNode>) {
-        panic!("Not implemented")
+        todo!("Not implemented")
     }
 
     fn run_command(name: String, args: &[String], redirections: Vec<Redirection>) {
-        let (mut input, mut output, mut errput) = check_streams(redirections);
+        let (mut input, mut output, mut errput) = util::check_streams(redirections);
         run_command_stream(name, args, &mut input, &mut output, &mut errput);
     }
 
-    fn check_streams(
-        redirection: Vec<Redirection>,
-    ) -> (Box<dyn Read>, Box<dyn Write>, Box<dyn Write>) {
-        let mut input_stream: Box<dyn Read> = Box::new(io::stdin());
-        let mut iostream: Box<dyn Write> = Box::new(io::stdout());
-        let mut errstream: Box<dyn Write> = Box::new(io::stderr());
-
-        for Redirection {
-            fd,
-            direction,
-            target,
-        } in redirection
-        {
-            match (fd, direction) {
-                (0, RedirectionType::Input) => {
-                    todo!("Input")
-                }
-                (1, RedirectionType::Output) => {
-                    if let Ok(file) = std::fs::File::create(&target) {
-                        iostream = Box::new(file);
-                    } else {
-                        writeln!(errstream, "Error opening input file: {}", target).unwrap();
-                    }
-                }
-                (2, RedirectionType::Output) => {
-                    if let Ok(file) = std::fs::File::create(&target) {
-                        errstream = Box::new(file);
-                    } else {
-                        writeln!(errstream, "Error opening input file: {}", target).unwrap();
-                    }
-                }
-                (1, RedirectionType::Append) => {
-                    if let Ok(file) = std::fs::OpenOptions::new()
-                        .write(true)
-                        .append(true)
-                        .open(&target)
-                    {
-                        iostream = Box::new(file);
-                    } else {
-                        writeln!(errstream, "Error opening append file: {}", target).unwrap();
-                    }
-                }
-                (2, RedirectionType::Append) => {
-                    if let Ok(file) = std::fs::OpenOptions::new()
-                        .write(true)
-                        .append(true)
-                        .open(&target)
-                    {
-                        errstream = Box::new(file);
-                    } else {
-                        writeln!(errstream, "Error opening append file: {}", target).unwrap();
-                    }
-                }
-                _ => unreachable!(),
-            }
-        }
-        (input_stream, iostream, errstream)
-    }
     fn run_command_stream(
         name: String,
         args: &[String],
