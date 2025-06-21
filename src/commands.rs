@@ -24,7 +24,7 @@ pub fn external_cmd(
     iostream: &mut dyn Write,
     err_stream: &mut dyn Write,
 ) {
-    let file_name = path.file_name().unwrap_or_default().to_os_string(); // clone to detach the borrow
+    let file_name = path.file_name().unwrap_or_default().to_os_string();
 
     match process::Command::new(path)
         .arg0(file_name)

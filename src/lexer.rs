@@ -42,6 +42,8 @@ impl Lexer {
     }
 
     fn handle_char(&mut self, c: char) {
+        // TODO: handle operators which aren't using whitespaces e.g
+        // ls>temp.txt
         match self.current_state {
             LexerState::Normal => {
                 if c.is_whitespace() {

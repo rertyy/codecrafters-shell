@@ -63,30 +63,53 @@ fn main() {
         let mut iostream: Box<dyn Write> = Box::new(io::stdout());
         let mut errstream: Box<dyn Write> = Box::new(io::stderr());
 
-        for redir in redirection {
-            match redir.direction {
-                RedirectionType::Input => {
-                    if let Ok(file) = std::fs::File::open(&redir.target) {
-                        input_stream = Box::new(file);
-                    } else {
-                        writeln!(errstream, "Error opening input file: {}", redir.target).unwrap();
-                    }
+        for Redirection {
+            fd,
+            direction,
+            target,
+        } in redirection
+        {
+            match (fd, direction) {
+                (0, RedirectionType::Input) => {
+                    todo!("Input")
                 }
-                RedirectionType::Output => {
-                    if let Ok(file) = std::fs::File::create(&redir.target) {
+                (1, RedirectionType::Output) => {
+                    if let Ok(file) = std::fs::File::create(&target) {
                         iostream = Box::new(file);
                     } else {
-                        writeln!(errstream, "Error creating output file: {}", redir.target)
-                            .unwrap();
+                        writeln!(errstream, "Error opening input file: {}", target).unwrap();
                     }
                 }
-                RedirectionType::Append => {
-                    if let Ok(file) = std::fs::OpenOptions::new().append(true).open(&redir.target) {
+                (2, RedirectionType::Output) => {
+                    if let Ok(file) = std::fs::File::create(&target) {
+                        errstream = Box::new(file);
+                    } else {
+                        writeln!(errstream, "Error opening input file: {}", target).unwrap();
+                    }
+                }
+                (1, RedirectionType::Append) => {
+                    if let Ok(file) = std::fs::OpenOptions::new()
+                        .write(true)
+                        .append(true)
+                        .open(&target)
+                    {
                         iostream = Box::new(file);
                     } else {
-                        writeln!(errstream, "Error opening append file: {}", redir.target).unwrap();
+                        writeln!(errstream, "Error opening append file: {}", target).unwrap();
                     }
                 }
+                (2, RedirectionType::Append) => {
+                    if let Ok(file) = std::fs::OpenOptions::new()
+                        .write(true)
+                        .append(true)
+                        .open(&target)
+                    {
+                        errstream = Box::new(file);
+                    } else {
+                        writeln!(errstream, "Error opening append file: {}", target).unwrap();
+                    }
+                }
+                _ => unreachable!(),
             }
         }
         (input_stream, iostream, errstream)
