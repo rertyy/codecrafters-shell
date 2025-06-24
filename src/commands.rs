@@ -21,6 +21,12 @@ pub fn history_cmd(args: &[String], iostream: &mut dyn Write, editor: &mut Defau
                 }
             }
         }
+        Some("-w") => {
+            if let Some(path) = args.get(1) {
+                let hist_list: Vec<String> = history.iter().map(|s| s.to_string()).collect();
+                util::write_history(&hist_list, path);
+            }
+        }
         Some(s) => {
             let k = s.parse::<usize>().unwrap_or(len);
             let first = len.saturating_sub(k);

@@ -110,14 +110,14 @@ pub fn read_history(history_file: &str) -> Vec<String> {
         Vec::new()
     }
 }
-pub fn write_history(history: &[String]) {
-    if let Ok(mut history_file) = std::fs::OpenOptions::new()
+pub fn write_history(history: &[String], history_file: &str) {
+    if let Ok(mut file_ref) = std::fs::OpenOptions::new()
         .create(true)
         .write(true)
-        .open(HISTORY_FILE)
+        .open(history_file)
     {
         for entry in history {
-            writeln!(history_file, "{}", entry).unwrap();
+            writeln!(file_ref, "{}", entry).unwrap();
         }
     } else {
         eprintln!("History file not found");
