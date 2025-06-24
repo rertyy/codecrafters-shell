@@ -33,7 +33,7 @@ pub fn check_path(cmd: &str) -> Result<PathBuf, PathError> {
 pub fn check_streams(
     redirection: Vec<Redirection>,
 ) -> (Box<dyn Read>, Box<dyn Write>, Box<dyn Write>) {
-    let mut input_stream: Box<dyn Read> = Box::new(io::stdin());
+    let input_stream: Box<dyn Read> = Box::new(io::stdin());
     let mut iostream: Box<dyn Write> = Box::new(io::stdout());
     let mut errstream: Box<dyn Write> = Box::new(io::stderr());
 
@@ -104,20 +104,24 @@ pub fn clear_history() {
 
 pub fn read_history() -> Vec<String> {
     if let Ok(lines) = read_lines(HISTORY_FILE) {
-        let mut history: Vec<String> = lines.map_while(Result::ok).collect();
+        let history: Vec<String> = lines.map_while(Result::ok).collect();
         history
     } else {
         Vec::new()
     }
 }
-pub fn write_history(input: &str) {
+pub fn write_history(history: &[String]) {
     if let Ok(mut history_file) = std::fs::OpenOptions::new()
         .create(true)
-        .append(true)
+        .write(true)
         .open(HISTORY_FILE)
     {
-        writeln!(history_file, "{}", input).unwrap();
+        for entry in history {
+            writeln!(history_file, "{}", entry).unwrap();
+        }
     } else {
         eprintln!("History file not found");
     }
 }
+
+pub fn autocomplete(mut input: &str) {}

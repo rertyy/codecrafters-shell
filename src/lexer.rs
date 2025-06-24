@@ -1,4 +1,4 @@
-use crate::enums::Token;
+use crate::enums::{Operator, Token};
 
 #[derive(Debug, Clone)]
 enum LexerState {
@@ -31,7 +31,7 @@ impl Lexer {
         while self.position < self.input.len() {
             let c = self.input[self.position];
             self.handle_char(c);
-            self.position += 1;
+            self.advance();
         }
 
         if !self.current_token.is_empty() {
@@ -42,49 +42,86 @@ impl Lexer {
     }
 
     fn handle_char(&mut self, c: char) {
-        // TODO: handle operators which aren't using whitespaces e.g
-        // ls>temp.txt
         match self.current_state {
-            LexerState::Normal => {
-                if c.is_whitespace() {
-                    if !self.current_token.is_empty() {
-                        self.emit_token();
-                    }
-                } else if c == '\'' {
-                    if !self.current_token.is_empty() {
-                        self.emit_token();
-                    }
-                    self.current_state = LexerState::InSingleQuote;
-                } else if c == '"' {
-                    if !self.current_token.is_empty() {
-                        self.emit_token();
-                    }
-                    self.current_state = LexerState::InDoubleQuote;
-                } else if c == '\\' {
-                    self.current_state = LexerState::Escape;
-                } else {
-                    self.current_token.push(c);
+            LexerState::Normal => match c {
+                c if c.is_whitespace() => {
+                    self.emit_token();
                 }
-            }
+                '&' => {
+                    self.emit_token();
+                    self.current_token.push(c);
+                    if let Some('&') = self.peek() {
+                        self.advance();
+                        self.current_token.push(c);
+                    }
+                    self.emit_token();
+                }
+
+                '|' => {
+                    self.emit_token();
+                    self.current_token.push(c);
+                    if let Some('|') = self.peek() {
+                        self.advance();
+                        self.current_token.push(c);
+                    }
+                    self.emit_token();
+                }
+
+                '>' => {
+                    if !self.current_token.is_empty()
+                        && self
+                            .current_token
+                            .chars()
+                            .all(|ch| char::is_ascii_digit(&ch))
+                    {
+                        // 1> or 2>>
+                        self.current_token.push(c);
+                        if let Some('>') = self.peek() {
+                            self.advance();
+                            self.current_token.push(c);
+                        }
+                        self.emit_token();
+                    } else {
+                        // word boundary -> start of new operator
+                        self.emit_token();
+                        self.current_token.push(c);
+                        if let Some('>') = self.peek() {
+                            self.advance();
+                            self.current_token.push(c);
+                        }
+                        self.emit_token();
+                    }
+                }
+
+                '\'' => {
+                    self.current_state = LexerState::InSingleQuote;
+                }
+                '"' => {
+                    self.current_state = LexerState::InDoubleQuote;
+                }
+                '\\' => {
+                    self.current_state = LexerState::Escape;
+                }
+                _ => self.current_token.push(c),
+            },
             LexerState::InSingleQuote => {
                 // Single quotes don't have escape sequences
-                if c == '\'' {
-                    self.emit_token();
-                    self.current_state = LexerState::Normal;
-                } else {
-                    self.current_token.push(c);
+                match c {
+                    '\'' => {
+                        self.current_state = LexerState::Normal;
+                    }
+                    _ => self.current_token.push(c),
                 }
             }
-            LexerState::InDoubleQuote => {
-                if c == '"' {
-                    self.emit_token();
+            LexerState::InDoubleQuote => match c {
+                '"' => {
                     self.current_state = LexerState::Normal;
-                } else if c == '\\' {
+                }
+                '\\' => {
                     self.current_state = LexerState::Escape;
-                } else {
-                    self.current_token.push(c);
                 }
-            }
+                _ => self.current_token.push(c),
+            },
             LexerState::Escape => {
                 self.current_token.push(c);
                 self.current_state = LexerState::Normal;
@@ -92,17 +129,30 @@ impl Lexer {
         }
     }
 
+    fn advance(&mut self) {
+        self.position += 1;
+    }
+
+    fn peek(&mut self) -> Option<&char> {
+        self.input.get(self.position + 1)
+    }
+
     fn emit_token(&mut self) {
+        if self.current_token.is_empty() {
+            return;
+        }
         match self.current_state {
-            LexerState::Normal => match self.current_token.parse::<Token>() {
-                Ok(token) => self.tokens.push(token),
-                Err(_) => self.tokens.push(Token::Word(self.current_token.clone())),
-            },
-            LexerState::InSingleQuote | LexerState::InDoubleQuote => {
-                self.tokens
-                    .push(Token::StringLiteral(self.current_token.clone()));
+            LexerState::Normal => {
+                if let Ok(operator) = self.current_token.parse::<Operator>() {
+                    self.tokens.push(Token::Operator(operator))
+                } else {
+                    self.tokens.push(Token::Word(self.current_token.clone()))
+                }
             }
-            _ => panic!("Unexpected state when emitting token"),
+            LexerState::InSingleQuote | LexerState::InDoubleQuote => {
+                self.tokens.push(Token::Word(self.current_token.clone()));
+            }
+            _ => unreachable!("Emit token"),
         }
         self.current_token.clear();
     }

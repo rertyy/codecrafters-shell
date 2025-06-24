@@ -78,15 +78,12 @@ impl FromStr for Command {
 pub enum Token {
     Word(String),
     Operator(Operator),
-    StringLiteral(String),
 }
 
 impl FromStr for Token {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        s.parse::<Operator>()
-            .map(Token::Operator)
-            .or_else(|_| Ok(Token::Word(s.to_string())))
+        Ok(Token::Word(s.to_string()))
     }
 }

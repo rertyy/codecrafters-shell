@@ -85,7 +85,7 @@ impl Parser {
                     let op = op.clone();
                     self.consume_token();
                     let target = match self.consume_token() {
-                        Some(Token::Word(w)) | Some(Token::StringLiteral(w)) => w.clone(),
+                        Some(Token::Word(w)) => w.clone(),
                         _ => panic!("Expected target after redirection"),
                     };
                     let (fd, rtype) = match op {
@@ -102,7 +102,7 @@ impl Parser {
                         target,
                     });
                 }
-                Token::Word(w) | Token::StringLiteral(w) => {
+                Token::Word(w) => {
                     let w = w.clone();
                     self.consume_token();
                     if name.is_none() {

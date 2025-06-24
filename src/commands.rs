@@ -1,21 +1,25 @@
 use crate::enums::Command;
-use crate::util;
+use rustyline::history::{History, SearchDirection, SearchResult};
+use rustyline::DefaultEditor;
 use std::cmp::max;
 use std::io::Write;
 use std::os::unix::process::CommandExt;
 use std::{path::PathBuf, process};
 
-pub fn history_cmd(args: &[String], iostream: &mut dyn Write) {
-    let history = util::read_history();
-    let len = (&history).len();
+pub fn history_cmd(args: &[String], iostream: &mut dyn Write, editor: &DefaultEditor) {
+    let history = editor.history();
+    let len = history.len();
+
     let k = args
         .get(0)
         .and_then(|s| s.parse::<usize>().ok())
         .unwrap_or(len);
+
     let first = max(0, len - k);
-    let last_k = &history[first..];
-    for (i, line) in last_k.iter().enumerate() {
-        writeln!(iostream, "    {}  {}", first + 1 + i, line).unwrap();
+    for i in first..len {
+        if let Ok(Some(SearchResult { entry, .. })) = history.get(i, SearchDirection::Forward) {
+            writeln!(iostream, "    {}  {}", first + 1 + i, entry).unwrap();
+        }
     }
 }
 pub fn cd_cmd(args: &[String], err_stream: &mut dyn Write) {
