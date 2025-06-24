@@ -45,7 +45,7 @@ fn main() {
                         name,
                         args,
                         redirections,
-                    } => run_command(name, &args, redirections, &rl),
+                    } => run_command(name, &args, redirections, &mut rl),
                     ASTNode::Pipeline(pipeline) => run_pipeline(pipeline),
                 }
             }
@@ -71,10 +71,10 @@ fn run_command(
     name: String,
     args: &[String],
     redirections: Vec<Redirection>,
-    editor: &DefaultEditor,
+    editor: &mut DefaultEditor,
 ) {
     let (mut input, mut output, mut errput) = util::check_streams(redirections);
-    run_command_stream(name, args, &mut input, &mut output, &mut errput, &editor);
+    run_command_stream(name, args, &mut input, &mut output, &mut errput, editor);
 }
 
 fn run_command_stream(
@@ -83,7 +83,7 @@ fn run_command_stream(
     _input_stream: &mut dyn Read,
     iostream: &mut dyn Write,
     err_stream: &mut dyn Write,
-    editor: &DefaultEditor,
+    editor: &mut DefaultEditor,
 ) {
     if let Ok(command) = name.parse::<Command>() {
         match command {

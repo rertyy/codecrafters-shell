@@ -1,27 +1,45 @@
 use crate::enums::Command;
+use crate::util;
 use rustyline::history::{History, SearchDirection, SearchResult};
 use rustyline::DefaultEditor;
-use std::cmp::max;
 use std::io::Write;
 use std::os::unix::process::CommandExt;
 use std::{path::PathBuf, process};
 
-pub fn history_cmd(args: &[String], iostream: &mut dyn Write, editor: &DefaultEditor) {
+pub fn history_cmd(args: &[String], iostream: &mut dyn Write, editor: &mut DefaultEditor) {
     let history = editor.history();
     let len = history.len();
 
-    let k = args
-        .get(0)
-        .and_then(|s| s.parse::<usize>().ok())
-        .unwrap_or(len);
-
-    let first = max(0, len - k);
-    for i in first..len {
-        if let Ok(Some(SearchResult { entry, .. })) = history.get(i, SearchDirection::Forward) {
-            writeln!(iostream, "    {}  {}", first + 1 + i, entry).unwrap();
+    match args.get(0).map(String::as_str) {
+        Some("-r") => {
+            if let Some(path) = args.get(1) {
+                let new_hist = util::read_history(path);
+                for entry in new_hist.iter() {
+                    editor
+                        .add_history_entry(entry)
+                        .expect("Failed to add history");
+                }
+            }
+        }
+        Some(s) => {
+            let k = s.parse::<usize>().unwrap_or(len);
+            let first = len.saturating_sub(k);
+            for i in first..len {
+                if let Ok(Some(SearchResult { entry, .. })) =
+                    history.get(i, SearchDirection::Forward)
+                {
+                    writeln!(iostream, "{}  {}", i + 1, entry).unwrap();
+                }
+            }
+        }
+        None => {
+            for (i, entry) in history.iter().enumerate() {
+                writeln!(iostream, "{}  {}", i + 1, entry).unwrap();
+            }
         }
     }
 }
+
 pub fn cd_cmd(args: &[String], err_stream: &mut dyn Write) {
     let home = std::env::var("HOME").unwrap_or_else(|_| "/".into());
     let dir = args.get(0).unwrap_or(&home);

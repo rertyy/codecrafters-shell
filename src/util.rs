@@ -102,8 +102,8 @@ pub fn clear_history() {
     fs::remove_file(HISTORY_FILE).unwrap_or(())
 }
 
-pub fn read_history() -> Vec<String> {
-    if let Ok(lines) = read_lines(HISTORY_FILE) {
+pub fn read_history(history_file: &str) -> Vec<String> {
+    if let Ok(lines) = read_lines(history_file) {
         let history: Vec<String> = lines.map_while(Result::ok).collect();
         history
     } else {
