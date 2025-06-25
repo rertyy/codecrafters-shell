@@ -138,7 +138,19 @@ pub fn echo_cmd(input: &[String], iostream: &mut dyn Write) {
     writeln!(iostream, "{}", input.join(" ")).unwrap();
 }
 
-pub fn exit_cmd(args: &[String]) {
+pub fn exit_cmd(args: &[String], editor: &mut DefaultEditor, last_saved_history_idx: &mut usize) {
     let code = args.get(0).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0);
+    let first_i = *last_saved_history_idx;
+    let history = editor.history();
+    let len = history.len();
+    let new_entries: Vec<_> = (first_i..len)
+        .filter_map(|i| match history.get(i, SearchDirection::Forward) {
+            Ok(Some(SearchResult { entry, .. })) => Some(entry.into_owned()),
+            _ => None,
+        })
+        .collect();
+    let history_file = std::env::var("HISTFILE").unwrap_or_default();
+    util::append_history(&new_entries, &history_file);
+
     process::exit(code);
 }

@@ -1,6 +1,7 @@
 extern crate core;
 
 use rustyline::error::ReadlineError;
+use rustyline::history::History;
 use rustyline::DefaultEditor;
 use std::io::{Read, Write};
 
@@ -10,8 +11,6 @@ mod lexer;
 mod parser;
 pub mod util;
 
-const HISTORY_FILE: &str = "/tmp/ccf_hist.txt";
-
 use crate::commands::*;
 use crate::enums::Command;
 use crate::lexer::Lexer;
@@ -19,10 +18,10 @@ use crate::parser::{ASTNode, Parser, Redirection};
 
 fn main() {
     let mut rl = rustyline::DefaultEditor::new().unwrap();
-    let mut last_saved_history_idx = 0;
     let history_file = std::env::var("HISTFILE").unwrap_or_default();
 
-    if rl.load_history(&history_file).is_err() {}
+    let _ = rl.load_history(&history_file);
+    let mut last_saved_history_idx = rl.history().len();
 
     loop {
         let readline = rl.readline("$ ");
@@ -103,7 +102,7 @@ fn run_command_stream(
 ) {
     if let Ok(command) = name.parse::<Command>() {
         match command {
-            Command::Exit => exit_cmd(&args),
+            Command::Exit => exit_cmd(&args, editor, last_saved_history_idx),
             Command::Echo => echo_cmd(&args, iostream),
             Command::Type => type_cmd(&args, iostream, err_stream),
             Command::External(path) => external_cmd(path, &args, iostream, err_stream),

@@ -1,9 +1,8 @@
 use crate::parser::{Redirection, RedirectionType};
-use crate::HISTORY_FILE;
 use std::fs::File;
 use std::io::{BufRead, Read, Write};
 use std::path::{Path, PathBuf};
-use std::{fmt, fs, io};
+use std::{fmt, io};
 
 #[derive(Debug)]
 pub struct PathError;
@@ -98,10 +97,6 @@ where
     Ok(io::BufReader::new(file).lines())
 }
 
-pub fn clear_history() {
-    fs::remove_file(HISTORY_FILE).unwrap_or(())
-}
-
 pub fn read_history(history_file: &str) -> Vec<String> {
     if let Ok(lines) = read_lines(history_file) {
         let history: Vec<String> = lines.map_while(Result::ok).collect();
@@ -120,8 +115,6 @@ pub fn append_history(history: &[String], history_file: &str) {
         for entry in history {
             writeln!(file_ref, "{}", entry).unwrap();
         }
-    } else {
-        eprintln!("History file not found");
     }
 }
 pub fn write_history(history: &[String], history_file: &str) {
@@ -133,9 +126,5 @@ pub fn write_history(history: &[String], history_file: &str) {
         for entry in history {
             writeln!(file_ref, "{}", entry).unwrap();
         }
-    } else {
-        eprintln!("History file not found");
     }
 }
-
-pub fn autocomplete(mut input: &str) {}
