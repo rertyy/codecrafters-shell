@@ -20,12 +20,9 @@ use crate::parser::{ASTNode, Parser, Redirection};
 fn main() {
     let mut rl = rustyline::DefaultEditor::new().unwrap();
     let mut last_saved_history_idx = 0;
-    let hist_path = std::env::var("HISTFILE").unwrap();
+    let history_file = std::env::var("HISTFILE").unwrap_or_default();
 
-    // let history_file = "/tmp/ccf_hist.txt";
-    //
-    // if rl.load_history(history_file).is_err() {
-    // }
+    if rl.load_history(&history_file).is_err() {}
 
     loop {
         let readline = rl.readline("$ ");
@@ -67,7 +64,7 @@ fn main() {
             }
         }
     }
-    // rl.save_history(history_file).unwrap()
+    rl.save_history(&history_file).unwrap()
 }
 
 // TODO: write when shell exits
