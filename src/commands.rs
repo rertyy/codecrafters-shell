@@ -6,7 +6,12 @@ use std::io::Write;
 use std::os::unix::process::CommandExt;
 use std::{path::PathBuf, process};
 
-pub fn history_cmd(args: &[String], iostream: &mut dyn Write, editor: &mut DefaultEditor) {
+pub fn history_cmd(
+    args: &[String],
+    iostream: &mut dyn Write,
+    editor: &mut DefaultEditor,
+    last_saved_history_idx: &mut usize,
+) {
     let history = editor.history();
     let len = history.len();
 
@@ -25,6 +30,20 @@ pub fn history_cmd(args: &[String], iostream: &mut dyn Write, editor: &mut Defau
             if let Some(path) = args.get(1) {
                 let hist_list: Vec<String> = history.iter().map(|s| s.to_string()).collect();
                 util::write_history(&hist_list, path);
+            }
+        }
+        Some("-a") => {
+            if let Some(path) = args.get(1) {
+                let first_i = *last_saved_history_idx;
+                let new_entries: Vec<_> = (first_i..len)
+                    .filter_map(|i| match history.get(i, SearchDirection::Forward) {
+                        Ok(Some(SearchResult { entry, .. })) => Some(entry.into_owned()),
+                        _ => None,
+                    })
+                    .collect();
+
+                *last_saved_history_idx = len;
+                util::append_history(&new_entries, path);
             }
         }
         Some(s) => {

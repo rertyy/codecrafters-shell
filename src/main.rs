@@ -19,6 +19,9 @@ use crate::parser::{ASTNode, Parser, Redirection};
 
 fn main() {
     let mut rl = rustyline::DefaultEditor::new().unwrap();
+    let mut last_saved_history_idx = 0;
+    let hist_path = std::env::var("HISTFILE").unwrap();
+
     // let history_file = "/tmp/ccf_hist.txt";
     //
     // if rl.load_history(history_file).is_err() {
@@ -45,7 +48,13 @@ fn main() {
                         name,
                         args,
                         redirections,
-                    } => run_command(name, &args, redirections, &mut rl),
+                    } => run_command(
+                        name,
+                        &args,
+                        redirections,
+                        &mut rl,
+                        &mut last_saved_history_idx,
+                    ),
                     ASTNode::Pipeline(pipeline) => run_pipeline(pipeline),
                 }
             }
@@ -72,9 +81,18 @@ fn run_command(
     args: &[String],
     redirections: Vec<Redirection>,
     editor: &mut DefaultEditor,
+    last_saved_history_idx: &mut usize,
 ) {
     let (mut input, mut output, mut errput) = util::check_streams(redirections);
-    run_command_stream(name, args, &mut input, &mut output, &mut errput, editor);
+    run_command_stream(
+        name,
+        args,
+        &mut input,
+        &mut output,
+        &mut errput,
+        editor,
+        last_saved_history_idx,
+    );
 }
 
 fn run_command_stream(
@@ -84,6 +102,7 @@ fn run_command_stream(
     iostream: &mut dyn Write,
     err_stream: &mut dyn Write,
     editor: &mut DefaultEditor,
+    last_saved_history_idx: &mut usize,
 ) {
     if let Ok(command) = name.parse::<Command>() {
         match command {
@@ -93,7 +112,7 @@ fn run_command_stream(
             Command::External(path) => external_cmd(path, &args, iostream, err_stream),
             Command::Pwd => pwd_cmd(iostream),
             Command::Cd => cd_cmd(&args, err_stream),
-            Command::History => history_cmd(args, iostream, editor),
+            Command::History => history_cmd(args, iostream, editor, last_saved_history_idx),
             Command::Invalid => invalid_cmd(&name, err_stream),
         }
     } else {
