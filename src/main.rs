@@ -36,6 +36,7 @@ fn main() {
 
                 let mut lexer = Lexer::new(line);
                 let tokens = lexer.lex();
+                // println!("{:#?}", tokens);
                 let mut parser = Parser::new(tokens);
                 let node = parser.parse();
 
@@ -65,8 +66,6 @@ fn main() {
     }
     rl.save_history(&history_file).unwrap()
 }
-
-// TODO: write when shell exits
 
 fn run_pipeline(_pipeline: Vec<ASTNode>) {
     todo!("Not implemented")
