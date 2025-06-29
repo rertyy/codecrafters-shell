@@ -1,6 +1,9 @@
 use crate::parser::{Redirection, RedirectionType};
+use std::collections::HashMap;
 use std::fs::File;
+use std::hash::Hash;
 use std::io::{BufRead, Read, Write};
+use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::{fmt, io};
 
@@ -20,13 +23,53 @@ pub fn check_path(cmd: &str) -> Result<PathBuf, PathError> {
     for path in paths {
         // let full_path = format!("{}/{}", path, cmd);
         let full_path = Path::new(path).join(cmd);
-        let pathbuf = PathBuf::from(full_path);
-        if pathbuf.exists() {
-            return Ok(pathbuf);
+        if full_path.is_file() {
+            let metadata = full_path.metadata().ok();
+            if let Some(meta) = metadata {
+                if meta.permissions().mode() & 0o111 != 0 {
+                    return Ok(full_path);
+                }
+            }
         }
     }
 
     Err(PathError)
+}
+
+// pub fn get_path_executables() -> HashMap<String, PathBuf> {
+//     let mut seen = HashSet::new();
+//
+//     std::env::var("PATH")
+//         .unwrap_or_default()
+//         .split(':')
+//         .flat_map(|dir| fs::read_dir(dir).into_iter().flat_map(|it| it.flatten()))
+//         .filter_map(|entry| {
+//             let path = entry.path();
+//             let name = path.file_name()?.to_str()?.to_string();
+//             if path.is_file() && seen.insert(name.clone()) {
+//                 Some((name, path))
+//             } else {
+//                 None
+//             }
+//         })
+//         .collect()
+// }
+
+pub fn get_path_exe_strings(exe: HashMap<String, PathBuf>) -> Vec<String> {
+    exe.iter().map(|(name, _)| name.to_string()).collect()
+}
+
+fn create_file(target: &str) -> Result<Box<dyn Write>, io::Error> {
+    let file = File::create(target)?;
+    Ok(Box::new(file))
+}
+
+fn append_file(target: &str) -> Result<Box<dyn Write>, io::Error> {
+    let file = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&target)?;
+    Ok(Box::new(file))
 }
 
 pub fn check_streams(
@@ -47,40 +90,16 @@ pub fn check_streams(
                 todo!("Input")
             }
             (1, RedirectionType::Output) => {
-                if let Ok(file) = std::fs::File::create(&target) {
-                    iostream = Box::new(file);
-                } else {
-                    writeln!(errstream, "Error opening input file: {}", target).unwrap();
-                }
+                iostream = create_file(&target).unwrap();
             }
             (2, RedirectionType::Output) => {
-                if let Ok(file) = std::fs::File::create(&target) {
-                    errstream = Box::new(file);
-                } else {
-                    writeln!(errstream, "Error opening input file: {}", target).unwrap();
-                }
+                errstream = create_file(&target).unwrap();
             }
             (1, RedirectionType::Append) => {
-                if let Ok(file) = std::fs::OpenOptions::new()
-                    .create(true)
-                    .append(true)
-                    .open(&target)
-                {
-                    iostream = Box::new(file);
-                } else {
-                    writeln!(errstream, "Error opening append file: {}", target).unwrap();
-                }
+                iostream = append_file(&target).unwrap();
             }
             (2, RedirectionType::Append) => {
-                if let Ok(file) = std::fs::OpenOptions::new()
-                    .create(true)
-                    .append(true)
-                    .open(&target)
-                {
-                    errstream = Box::new(file);
-                } else {
-                    writeln!(errstream, "Error opening append file: {}", target).unwrap();
-                }
+                errstream = append_file(&target).unwrap();
             }
             _ => unreachable!(),
         }

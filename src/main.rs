@@ -1,23 +1,37 @@
 extern crate core;
 
+use rustyline::config::Configurer;
 use rustyline::error::ReadlineError;
-use rustyline::history::History;
-use rustyline::DefaultEditor;
+use rustyline::history::{DefaultHistory, History};
+use rustyline::{CompletionType, Editor};
 use std::io::{Read, Write};
 
 mod commands;
+mod completer;
 mod enums;
 mod lexer;
 mod parser;
 pub mod util;
 
 use crate::commands::*;
+use crate::completer::MyHelper;
 use crate::enums::Command;
 use crate::lexer::Lexer;
 use crate::parser::{ASTNode, Parser, Redirection};
 
-fn main() {
-    let mut rl = rustyline::DefaultEditor::new().unwrap();
+fn main() -> rustyline::Result<()> {
+    let helper = MyHelper {
+        // completer: FilenameCompleter::new(),
+        // highlighter: MatchingBracketHighlighter::new(),
+        // hinter: HistoryHinter::new(),
+        // validator: MatchingBracketValidator::new(),
+    };
+    let mut rl = Editor::new()?;
+    rl.set_completion_type(CompletionType::List);
+    rl.set_helper(Some(helper));
+
+    // let executables = util::get_path_executables();
+
     let history_file = std::env::var("HISTFILE").unwrap_or_default();
 
     let _ = rl.load_history(&history_file);
@@ -27,7 +41,8 @@ fn main() {
         let readline = rl.readline("$ ");
         match readline {
             Ok(line) => {
-                let line = line.trim();
+                // println!("DEBUG: {:?}", line);
+                let line = line.trim_start();
                 if line.is_empty() {
                     continue;
                 }
@@ -64,7 +79,9 @@ fn main() {
             }
         }
     }
-    rl.save_history(&history_file).unwrap()
+    rl.append_history(&history_file)?;
+    // rl.save_history(&history_file).unwrap()
+    Ok(())
 }
 
 fn run_pipeline(_pipeline: Vec<ASTNode>) {
@@ -75,7 +92,7 @@ fn run_command(
     name: String,
     args: &[String],
     redirections: Vec<Redirection>,
-    editor: &mut DefaultEditor,
+    editor: &mut Editor<MyHelper, DefaultHistory>,
     last_saved_history_idx: &mut usize,
 ) {
     let (mut input, mut output, mut errput) = util::check_streams(redirections);
@@ -96,7 +113,7 @@ fn run_command_stream(
     _input_stream: &mut dyn Read,
     iostream: &mut dyn Write,
     err_stream: &mut dyn Write,
-    editor: &mut DefaultEditor,
+    editor: &mut Editor<MyHelper, DefaultHistory>,
     last_saved_history_idx: &mut usize,
 ) {
     if let Ok(command) = name.parse::<Command>() {

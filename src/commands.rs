@@ -1,7 +1,8 @@
+use crate::completer::MyHelper;
 use crate::enums::Command;
 use crate::util;
-use rustyline::history::{History, SearchDirection, SearchResult};
-use rustyline::DefaultEditor;
+use rustyline::history::{DefaultHistory, History, SearchDirection, SearchResult};
+use rustyline::Editor;
 use std::io::Write;
 use std::os::unix::process::CommandExt;
 use std::{path::PathBuf, process};
@@ -9,7 +10,7 @@ use std::{path::PathBuf, process};
 pub fn history_cmd(
     args: &[String],
     iostream: &mut dyn Write,
-    editor: &mut DefaultEditor,
+    editor: &mut Editor<MyHelper, DefaultHistory>,
     last_saved_history_idx: &mut usize,
 ) {
     let history = editor.history();
@@ -138,12 +139,16 @@ pub fn echo_cmd(input: &[String], iostream: &mut dyn Write) {
     writeln!(iostream, "{}", input.join(" ")).unwrap();
 }
 
-pub fn exit_cmd(args: &[String], editor: &mut DefaultEditor, last_saved_history_idx: &mut usize) {
+pub fn exit_cmd(
+    args: &[String],
+    editor: &mut Editor<MyHelper, DefaultHistory>,
+    last_saved_history_idx: &mut usize,
+) {
     let code = args.get(0).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0);
     let first_i = *last_saved_history_idx;
     let history = editor.history();
     let len = history.len();
-    let new_entries: Vec<_> = (first_i..len)
+    let new_entries: Vec<String> = (first_i..len)
         .filter_map(|i| match history.get(i, SearchDirection::Forward) {
             Ok(Some(SearchResult { entry, .. })) => Some(entry.into_owned()),
             _ => None,

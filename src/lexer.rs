@@ -43,106 +43,110 @@ impl Lexer {
     fn handle_char(&mut self, c: char) {
         // println!("{}, {}, {:?}", c, self.current_token, self.current_state);
         match self.current_state {
-            LexerState::Normal => {
-                match c {
-                    c if c.is_whitespace() => {
-                        self.emit_token();
-                    }
-                    '&' => {
-                        self.emit_token();
-                        self.current_token.push(c);
-                        if let Some('&') = self.peek() {
-                            self.advance();
-                            self.current_token.push(c);
-                        }
-                        self.emit_token();
-                    }
+            LexerState::Normal => self.handle_normal_char(c),
+            LexerState::InSingleQuote => self.handle_single_quote_char(c),
+            LexerState::InDoubleQuote => self.handle_double_quote_char(c),
+        }
+    }
 
-                    '|' => {
-                        self.emit_token();
-                        self.current_token.push(c);
-                        if let Some('|') = self.peek() {
-                            self.advance();
-                            self.current_token.push(c);
-                        }
-                        self.emit_token();
-                    }
-
-                    '>' => {
-                        if !self.current_token.is_empty()
-                            && self
-                                .current_token
-                                .chars()
-                                .all(|ch| char::is_ascii_digit(&ch))
-                        {
-                            // 1> or 2>>
-                            self.current_token.push(c);
-                            if let Some('>') = self.peek() {
-                                self.advance();
-                                self.current_token.push(c);
-                            }
-                            self.emit_token();
-                        } else {
-                            // word boundary -> start of new operator
-                            self.emit_token();
-                            self.current_token.push(c);
-                            if let Some('>') = self.peek() {
-                                self.advance();
-                                self.current_token.push(c);
-                            }
-                            self.emit_token();
-                        }
-                    }
-
-                    '\'' => {
-                        self.current_state = LexerState::InSingleQuote;
-                    }
-                    '"' => {
-                        self.current_state = LexerState::InDoubleQuote;
-                    }
-                    '\\' => {
-                        if let Some(&next) = self.peek() {
-                            // if the next char is ' or \", escape those
-                            // else, add \
-                            // let esc_chars = vec!['\'', '\"', '\\'];
-                            // if next.is_ascii_whitespace() || esc_chars.contains(next) {
-                            self.current_token.push(next);
-                            self.advance();
-                            return;
-                        }
-                        self.current_token.push(c);
-                    }
-                    _ => self.current_token.push(c),
-                }
+    fn handle_normal_char(&mut self, c: char) {
+        match c {
+            c if c.is_whitespace() => {
+                self.emit_token();
             }
-            LexerState::InSingleQuote => {
-                // Single quotes don't have escape sequences
-                match c {
-                    '\'' => {
-                        self.current_state = LexerState::Normal;
-                    }
-                    _ => self.current_token.push(c),
-                }
-            }
-            LexerState::InDoubleQuote => match c {
-                '"' => {
-                    self.current_state = LexerState::Normal;
-                }
-                '\\' => {
-                    if let Some(next) = self.peek() {
-                        // if the next char is ' or \", escape those
-                        // else, add \
-                        let esc_chars = vec!['\"', '\\'];
-                        if esc_chars.contains(next) {
-                            self.advance();
-                            self.current_token.push(self.input[self.position]);
-                            return;
-                        }
-                    }
+            '&' => {
+                self.emit_token();
+                self.current_token.push(c);
+                if let Some('&') = self.peek() {
+                    self.advance();
                     self.current_token.push(c);
                 }
-                _ => self.current_token.push(c),
-            },
+                self.emit_token();
+            }
+
+            '|' => {
+                self.emit_token();
+                self.current_token.push(c);
+                if let Some('|') = self.peek() {
+                    self.advance();
+                    self.current_token.push(c);
+                }
+                self.emit_token();
+            }
+
+            '>' => {
+                if !self.current_token.is_empty()
+                    && self
+                        .current_token
+                        .chars()
+                        .all(|ch| char::is_ascii_digit(&ch))
+                {
+                    // 1> or 2>>
+                    self.current_token.push(c);
+                    if let Some('>') = self.peek() {
+                        self.advance();
+                        self.current_token.push(c);
+                    }
+                    self.emit_token();
+                } else {
+                    // word boundary -> start of new operator
+                    self.emit_token();
+                    self.current_token.push(c);
+                    if let Some('>') = self.peek() {
+                        self.advance();
+                        self.current_token.push(c);
+                    }
+                    self.emit_token();
+                }
+            }
+
+            '\'' => {
+                self.current_state = LexerState::InSingleQuote;
+            }
+            '"' => {
+                self.current_state = LexerState::InDoubleQuote;
+            }
+            '\\' => {
+                if let Some(&next) = self.peek() {
+                    // in normal, backslash escapes everything
+                    self.current_token.push(next);
+                    self.advance();
+                    return;
+                }
+                self.current_token.push(c);
+            }
+            _ => self.current_token.push(c),
+        }
+    }
+    fn handle_single_quote_char(&mut self, c: char) {
+        // Single quotes don't have escape sequences
+        match c {
+            '\'' => {
+                self.current_state = LexerState::Normal;
+            }
+            _ => self.current_token.push(c),
+        }
+    }
+
+    fn handle_double_quote_char(&mut self, c: char) {
+        match c {
+            '"' => {
+                self.current_state = LexerState::Normal;
+            }
+            '\\' => {
+                if let Some(next) = self.peek() {
+                    // if the next char is ' or \", escape those
+                    // else, add \
+                    let esc_chars = vec!['\"', '\\'];
+                    if esc_chars.contains(next) {
+                        self.advance();
+                        self.current_token.push(self.input[self.position]);
+                        return;
+                    }
+                }
+                self.current_token.push(c);
+            }
+            _ => self.current_token.push(c),
         }
     }
 

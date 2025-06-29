@@ -31,6 +31,7 @@ impl FromStr for Operator {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Command {
+    // TODO: refactor Invalid and External out of here
     Exit,
     Echo,
     Type,
@@ -39,6 +40,23 @@ pub enum Command {
     Pwd,
     Cd,
     History,
+}
+
+impl Command {
+    pub fn get_builtins() -> Vec<String> {
+        vec![
+            Command::Exit,
+            Command::Echo,
+            Command::Type,
+            Command::Invalid,
+            Command::Pwd,
+            Command::Cd,
+            Command::History,
+        ]
+        .iter()
+        .map(|cmd| cmd.to_string())
+        .collect()
+    }
 }
 
 impl Display for Command {
