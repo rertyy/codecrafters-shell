@@ -1,6 +1,5 @@
 extern crate core;
 
-use rustyline::config::Configurer;
 use rustyline::error::ReadlineError;
 use rustyline::history::{DefaultHistory, History};
 use rustyline::{CompletionType, Editor};

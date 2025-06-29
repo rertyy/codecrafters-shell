@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fs;
 use std::fs::File;
-use std::hash::Hash;
 use std::io::{BufRead, Read, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
@@ -68,7 +67,7 @@ fn create_file(target: &str) -> Result<Box<dyn Write>, io::Error> {
 }
 
 fn append_file(target: &str) -> Result<Box<dyn Write>, io::Error> {
-    let file = std::fs::OpenOptions::new()
+    let file = fs::OpenOptions::new()
         .create(true)
         .append(true)
         .open(&target)?;
@@ -129,7 +128,7 @@ pub fn read_history(history_file: &str) -> Vec<String> {
 }
 
 pub fn append_history(history: &[String], history_file: &str) {
-    if let Ok(mut file_ref) = std::fs::OpenOptions::new()
+    if let Ok(mut file_ref) = fs::OpenOptions::new()
         .append(true)
         .write(true)
         .open(history_file)
@@ -140,7 +139,7 @@ pub fn append_history(history: &[String], history_file: &str) {
     }
 }
 pub fn write_history(history: &[String], history_file: &str) {
-    if let Ok(mut file_ref) = std::fs::OpenOptions::new()
+    if let Ok(mut file_ref) = fs::OpenOptions::new()
         .create(true)
         .write(true)
         .open(history_file)
