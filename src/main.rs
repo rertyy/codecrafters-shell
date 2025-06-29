@@ -20,14 +20,13 @@ use crate::lexer::Lexer;
 use crate::parser::{ASTNode, Parser, Redirection};
 
 fn main() -> rustyline::Result<()> {
-    let helper = MyHelper {
-        // completer: FilenameCompleter::new(),
-        // highlighter: MatchingBracketHighlighter::new(),
-        // hinter: HistoryHinter::new(),
-        // validator: MatchingBracketValidator::new(),
-    };
-    let mut rl = Editor::new()?;
-    rl.set_completion_type(CompletionType::List);
+    let helper = MyHelper {};
+
+    let config = rustyline::Config::builder()
+        .history_ignore_dups(false)?
+        .completion_type(CompletionType::List)
+        .build();
+    let mut rl = Editor::<MyHelper, DefaultHistory>::with_config(config)?;
     rl.set_helper(Some(helper));
 
     // let executables = util::get_path_executables();
@@ -35,6 +34,7 @@ fn main() -> rustyline::Result<()> {
     let history_file = std::env::var("HISTFILE").unwrap_or_default();
 
     let _ = rl.load_history(&history_file);
+
     let mut last_saved_history_idx = rl.history().len();
 
     loop {
@@ -80,7 +80,7 @@ fn main() -> rustyline::Result<()> {
         }
     }
     // rl.append_history(&history_file)?;
-    rl.save_history(&history_file)?;
+    let _ = rl.save_history(&history_file);
     Ok(())
 }
 

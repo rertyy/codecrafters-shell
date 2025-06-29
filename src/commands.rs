@@ -54,13 +54,13 @@ pub fn history_cmd(
                 if let Ok(Some(SearchResult { entry, .. })) =
                     history.get(i, SearchDirection::Forward)
                 {
-                    writeln!(iostream, "{}  {}", i + 1, entry).unwrap();
+                    writeln!(iostream, "    {}  {}", i + 1, entry).unwrap();
                 }
             }
         }
         None => {
             for (i, entry) in history.iter().enumerate() {
-                writeln!(iostream, "{}  {}", i + 1, entry).unwrap();
+                writeln!(iostream, "    {}  {}", i + 1, entry).unwrap();
             }
         }
     }

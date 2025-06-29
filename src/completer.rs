@@ -1,4 +1,5 @@
 use crate::enums::Command;
+use crate::util;
 use rustyline::completion::{Completer, Pair};
 use rustyline::{completion, Context};
 use rustyline_derive::{Helper, Highlighter, Hinter, Validator};
@@ -27,13 +28,21 @@ impl Completer for MyHelper {
         let is_break = |c: char| c.is_ascii_whitespace();
         let (start, word) = completion::extract_word(line, pos, Some('\\'), is_break);
 
-        let mut commands: Vec<String> = Vec::new();
-        commands.append(&mut Command::get_builtins());
+        // TODO: refactor to get executables at the start of the line rather than every completion
+        let mut commands: Vec<String> = Command::get_builtins();
+        let executables = util::get_path_executables();
+        let mut path_exe_strings = util::get_path_exe_strings(executables);
+        commands.append(&mut path_exe_strings);
+
+        commands.sort();
+        commands.dedup();
 
         let matching: Vec<_> = commands
             .into_iter()
             .filter(|cmd| cmd.starts_with(word))
             .collect();
+
+        // println!("{:?}", matching);
 
         if matching.len() == 1 {
             let disp = &matching[0];

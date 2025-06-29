@@ -39,6 +39,7 @@ pub fn check_path(cmd: &str) -> Result<PathBuf, PathError> {
 }
 
 pub fn get_path_executables() -> HashMap<String, PathBuf> {
+    // this is very slow...
     let mut seen = HashSet::new();
 
     std::env::var("PATH")
