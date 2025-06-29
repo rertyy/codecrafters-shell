@@ -1,5 +1,7 @@
 use crate::parser::{Redirection, RedirectionType};
 use std::collections::HashMap;
+use std::collections::HashSet;
+use std::fs;
 use std::fs::File;
 use std::hash::Hash;
 use std::io::{BufRead, Read, Write};
@@ -36,24 +38,24 @@ pub fn check_path(cmd: &str) -> Result<PathBuf, PathError> {
     Err(PathError)
 }
 
-// pub fn get_path_executables() -> HashMap<String, PathBuf> {
-//     let mut seen = HashSet::new();
-//
-//     std::env::var("PATH")
-//         .unwrap_or_default()
-//         .split(':')
-//         .flat_map(|dir| fs::read_dir(dir).into_iter().flat_map(|it| it.flatten()))
-//         .filter_map(|entry| {
-//             let path = entry.path();
-//             let name = path.file_name()?.to_str()?.to_string();
-//             if path.is_file() && seen.insert(name.clone()) {
-//                 Some((name, path))
-//             } else {
-//                 None
-//             }
-//         })
-//         .collect()
-// }
+pub fn get_path_executables() -> HashMap<String, PathBuf> {
+    let mut seen = HashSet::new();
+
+    std::env::var("PATH")
+        .unwrap_or_default()
+        .split(':')
+        .flat_map(|dir| fs::read_dir(dir).into_iter().flat_map(|it| it.flatten()))
+        .filter_map(|entry| {
+            let path = entry.path();
+            let name = path.file_name()?.to_str()?.to_string();
+            if path.is_file() && seen.insert(name.clone()) {
+                Some((name, path))
+            } else {
+                None
+            }
+        })
+        .collect()
+}
 
 pub fn get_path_exe_strings(exe: HashMap<String, PathBuf>) -> Vec<String> {
     exe.iter().map(|(name, _)| name.to_string()).collect()

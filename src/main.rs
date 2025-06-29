@@ -79,8 +79,8 @@ fn main() -> rustyline::Result<()> {
             }
         }
     }
-    rl.append_history(&history_file)?;
-    // rl.save_history(&history_file).unwrap()
+    // rl.append_history(&history_file)?;
+    rl.save_history(&history_file)?;
     Ok(())
 }
 
